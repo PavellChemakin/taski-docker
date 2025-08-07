@@ -21,7 +21,8 @@ services:
   frontend:
     image: pavellchemakin/taski_frontend  # Качаем с Docker Hub
     env_file: .env
-    command: cp -r /app/build/. /frontend_static/
+    ports:
+      - 8080:8000 
     volumes:
       - static:/frontend_static
   gateway:
