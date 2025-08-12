@@ -60,6 +60,10 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
+IN_CI = os.getenv('GITHUB_ACTIONS') == 'true'
+
+DB_DEFAULT_HOST = 'postgres' if IN_CI else 'db'
+
 DATABASES = {
     'default': {
         # Меняем настройку Django: теперь для работы будет использоваться
@@ -68,7 +72,7 @@ DATABASES = {
         'NAME': os.getenv('POSTGRES_DB', 'django'),
         'USER': os.getenv('POSTGRES_USER', 'django'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', 'db'),
+        'HOST': os.getenv('DB_HOST', DB_DEFAULT_HOST),
         'PORT': os.getenv('DB_PORT', 5432)
     }
 }
