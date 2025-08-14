@@ -19,7 +19,11 @@ jobs:
           POSTGRES_PASSWORD: taski_password
         ports:
           - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -109,7 +113,8 @@ jobs:
             cd ~
             [ -d taski ] || mkdir -p taski
             cd taski
-            sudo docker compose -f docker-compose.production.yml down -v --remove-orphans || true
+            sudo docker compose -f docker-compose.production.yml \
+              down -v --remove-orphans || true
             sudo fuser -k 9001/tcp || true
             sudo docker container prune -f || true
             sudo docker image prune -a -f || true
@@ -145,12 +150,20 @@ jobs:
             set -euxo pipefail
             cd ~/taski
             sudo docker compose -f docker-compose.production.yml pull
-            sudo docker compose -f docker-compose.production.yml down --remove-orphans || true
-            sudo docker compose -f docker-compose.production.yml up -d --force-recreate --remove-orphans
-            sudo docker compose -f docker-compose.production.yml exec -T db bash -lc 'until pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432; do sleep 1; done'
-            sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py migrate
-            sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py collectstatic --noinput
-            sudo docker compose -f docker-compose.production.yml exec -T backend bash -lc 'rm -rf /backend_static/static/* && cp -r /app/collected_static/. /backend_static/static/'
+            sudo docker compose -f docker-compose.production.yml \
+              down --remove-orphans || true
+            sudo docker compose -f docker-compose.production.yml up -d \
+              --force-recreate --remove-orphans || true
+            sudo docker compose -f docker-compose.production.yml exec -T db \
+              bash -lc 'until pg_isready -U "$POSTGRES_USER" \
+              -d "$POSTGRES_DB"; do sleep 1; done'
+            sudo docker compose -f docker-compose.production.yml exec -T backend \
+              python manage.py migrate
+            sudo docker compose -f docker-compose.production.yml exec -T backend \
+              python manage.py collectstatic --noinput
+            sudo docker compose -f docker-compose.production.yml exec -T backend \
+              bash -lc 'rm -rf /backend_static/static/* && cp -r \
+              /app/collected_static/. /backend_static/static/'
 
   notify:
     runs-on: ubuntu-latest

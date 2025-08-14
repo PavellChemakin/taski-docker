@@ -6,12 +6,16 @@ services:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
       test:
-        - CMD-SHELL
-        - pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB \
-          -h 127.0.0.1 -p 5432
+        - CMD
+        - pg_isready
+        - -U
+        - $$POSTGRES_USER
+        - -d
+        - $$POSTGRES_DB
       interval: 5s
-      timeout: 3s
-      retries: 20
+      timeout: 5s
+      retries: 30
+      start_period: 10s
     networks:
       - taski_net
     restart: always
