@@ -156,14 +156,14 @@ jobs:
               --force-recreate --remove-orphans || true
             sudo docker compose -f docker-compose.production.yml exec -T db \
               bash -lc 'until pg_isready -U "$POSTGRES_USER" \
-              -d "$POSTGRES_DB"; do sleep 1; done'
+              -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432; do sleep 1; done'
             sudo docker compose -f docker-compose.production.yml exec -T backend \
               python manage.py migrate
             sudo docker compose -f docker-compose.production.yml exec -T backend \
               python manage.py collectstatic --noinput
             sudo docker compose -f docker-compose.production.yml exec -T backend \
-              bash -lc 'rm -rf /backend_static/static/* && cp -r \
-              /app/collected_static/. /backend_static/static/'
+              bash -lc 'rm -rf /backend_static/* && cp -r \
+              /app/collected_static/. /backend_static/'
 
   notify:
     runs-on: ubuntu-latest
