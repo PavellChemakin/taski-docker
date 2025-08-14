@@ -1,35 +1,59 @@
-# docker-compose.production.yml
-version: '3'
-
-volumes:
-  pg_data_production:
-  backend_static:
-  static:
-
-# Всё отличие — заменяем build на image и указываем, какой образ использовать
 services:
   db:
     image: postgres:13.10
     env_file: .env
     volumes:
-      - pg_data_production:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h 127.0.0.1 -p 5432"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - taski_net
+    restart: always
+
   backend:
-    image: pavellchemakin/taski_backend # Качаем с Docker Hub
+    image: pavellchemakin/taski_backend:latest
     env_file: .env
     volumes:
-      - backend_static:/app/collected_static
+      - static:/backend_static
+      - media:/media
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - taski_net
+    restart: always
+
   frontend:
-    image: pavellchemakin/taski_frontend  # Качаем с Docker Hub
+    image: pavellchemakin/taski_frontend:latest
     env_file: .env
-    ports:
-      - 8080:8000 
     volumes:
-      - static:/frontend_static
+      - static:/static
+    networks:
+      - taski_net
+    restart: always
+
   gateway:
-    image: pavellchemakin/taski_gateway  # Качаем с Docker Hub
+    image: pavellchemakin/taski_gateway:latest
     env_file: .env
     volumes:
-      - backend_static:/backend_static
-      - static:/static_files
+      - static:/static
+      - media:/media
     ports:
-      - 8000:80
+      - "127.0.0.1:9001:80"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - taski_net
+    restart: always
+
+volumes:
+  pg_data:
+  static:
+  media:
+
+networks:
+  taski_net:

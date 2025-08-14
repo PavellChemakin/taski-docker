@@ -1,40 +1,59 @@
-# Файл docker-compose.yml
-version: '3'
-
-volumes:
-  pg_data:
-  backend_static:
-  static:
 services:
   db:
     image: postgres:13.10
     env_file: .env
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h 127.0.0.1 -p 5432"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - taski_net
+    restart: always
+
   backend:
-    build: ./backend/
+    image: pavellchemakin/taski_backend:latest
     env_file: .env
-    depends_on:
-      - db
     volumes:
       - static:/backend_static
+      - media:/media
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - taski_net
+    restart: always
+
   frontend:
-    volumes:
-      - static:/app/build/
+    image: pavellchemakin/taski_frontend:latest
     env_file: .env
-    build: ./frontend/
-# Добавляем новый контейнер: gateway
+    volumes:
+      - static:/static
+    networks:
+      - taski_net
+    restart: always
+
   gateway:
+    image: pavellchemakin/taski_gateway:latest
+    env_file: .env
+    volumes:
+      - static:/static
+      - media:/media
+    ports:
+      - "127.0.0.1:9001:80"
     depends_on:
       - backend
-    # Сбилдить и запустить образ, 
-    # описанный в Dockerfile в папке gateway
-    build: ./gateway/
-    volumes:
-      - backend_static:/backend_static
-      - static:/static_files
-    # Ключ ports устанавливает
-    # перенаправление всех запросов с порта 8000 хоста
-    # на порт 80 контейнера
-    ports:
-      - 8000:80
+      - frontend
+    networks:
+      - taski_net
+    restart: always
+
+volumes:
+  pg_data:
+  static:
+  media:
+
+networks:
+  taski_net:
