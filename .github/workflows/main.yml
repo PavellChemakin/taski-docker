@@ -106,7 +106,8 @@ jobs:
           script: |
             set -euxo pipefail
             sudo flock -w 900 /var/lock/deploy.lock bash -lc '
-              mkdir -p ~/taski && cd ~/taski
+              mkdir -p /home/${{ secrets.USER }}/taski
+              cd /home/${{ secrets.USER }}/taski
               sudo docker compose -f docker-compose.production.yml \
                 down --remove-orphans || true
               sudo fuser -k 9001/tcp || true
@@ -141,7 +142,7 @@ jobs:
           script: |
             set -euxo pipefail
             sudo flock -w 900 /var/lock/deploy.lock bash -lc '
-              cd ~/taski
+              cd /home/${{ secrets.USER }}/taski
               sudo docker compose -f docker-compose.production.yml pull
               sudo docker compose -f docker-compose.production.yml \
                 down --remove-orphans || true
@@ -165,7 +166,7 @@ jobs:
                 wget -qO- http://frontend:9000/ >/dev/null 2>&1 && exit 0 \
                 || sleep 1; done; exit 1"
 
-              curl -sfI http://127.0.0.1:9001/ >/dev/null
+              sudo curl -sfI http://127.0.0.1:9001/ >/dev/null
             '
 
   notify:
