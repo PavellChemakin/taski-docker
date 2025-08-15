@@ -1,54 +1,3 @@
-services:
-  db:
-    image: postgres:13.10
-    env_file: .env
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD", "pg_isready",
-              "-U", "$$POSTGRES_USER",
-              "-d", "$$POSTGRES_DB" ]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 10s
-    networks: [ taski_net ]
-    restart: always
-
-  backend:
-    image: pavellchemakin/taski_backend:latest
-    env_file: .env
-    volumes:
-      - static:/backend_static
-      - media:/media
-    depends_on:
-      db:
-        condition: service_healthy
-    networks: [ taski_net ]
-    restart: always
-
-  frontend:
-    image: pavellchemakin/taski_frontend:latest
-    env_file: .env
-    volumes:
-      - static:/static
-    networks: [ taski_net ]
-    restart: always
-
-  gateway:
-    image: pavellchemakin/taski_gateway:latest
-    env_file: .env
-    volumes:
-      - static:/static
-      - media:/media
-    ports:
-      - "127.0.0.1:9001:80"
-    depends_on:
-      - backend
-      - frontend
-    networks: [ taski_net ]
-    restart: always
-
 volumes:
   pg_data:
   static:
@@ -56,3 +5,64 @@ volumes:
 
 networks:
   taski_net:
+
+services:
+  db:
+    image: postgres:13.10
+    env_file: .env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - taski_net
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          pg_isready -U "$POSTGRES_USER"
+          -d "$POSTGRES_DB"
+          -h 127.0.0.1 -p 5432
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  backend:
+    image: pavellchemakin/taski_backend:latest
+    env_file: .env
+    volumes:
+      - static:/backend_static
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "9000"
+    networks:
+      - taski_net
+    restart: always
+
+  frontend:
+    image: pavellchemakin/taski_frontend:latest
+    env_file: .env
+    volumes:
+      - static:/static
+    expose:
+      - "9000"
+    networks:
+      - taski_net
+    restart: always
+
+  gateway:
+    image: pavellchemakin/taski_gateway:latest
+    env_file: .env
+    ports:
+      - "127.0.0.1:9001:80"
+    volumes:
+      - static:/static
+      - media:/media
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - taski_net
+    restart: always
