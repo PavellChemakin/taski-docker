@@ -5,10 +5,10 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-
 RUN npm run build
 
-RUN mkdir -p /static && cp -r /app/build/* /static/
+RUN mkdir -p /static \
+    && cp -r /app/build/static/. /static/
 
 RUN npm install --global http-server
 
