@@ -1,30 +1,20 @@
-volumes:
-  pg_data:
-  static:
-  media:
-
-networks:
-  taski_net:
-
 services:
   db:
     image: postgres:13.10
     env_file: .env
     volumes:
       - pg_data:/var/lib/postgresql/data
-    networks:
-      - taski_net
     healthcheck:
       test:
         - CMD-SHELL
-        - >
-          pg_isready -U "$POSTGRES_USER"
-          -d "$POSTGRES_DB"
-          -h 127.0.0.1 -p 5432
+        - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
       interval: 5s
       timeout: 5s
       retries: 12
       start_period: 20s
+    networks:
+      - taski_net
+    restart: always
 
   backend:
     image: pavellchemakin/taski_backend:latest
@@ -47,7 +37,7 @@ services:
     volumes:
       - static:/static
     expose:
-      - "9000"
+      - "8000"
     networks:
       - taski_net
     restart: always
@@ -66,3 +56,11 @@ services:
     networks:
       - taski_net
     restart: always
+
+volumes:
+  pg_data:
+  static:
+  media:
+
+networks:
+  taski_net:
