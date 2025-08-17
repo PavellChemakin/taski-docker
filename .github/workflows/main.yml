@@ -161,6 +161,9 @@ jobs:
                 bash -lc "rm -rf /backend_static/* && cp -r \
                 /app/collected_static/. /backend_static/"
 
+              sudo docker compose -f docker-compose.production.yml exec -T frontend \
+                bash -lc "rm -rf /static/* && cp -r /app/build/static/. /static/"
+
               sudo docker compose -f docker-compose.production.yml exec -T gateway \
                 sh -lc "for i in \$(seq 1 60); do \
                 wget -qO- http://frontend:9000/ >/dev/null 2>&1 && exit 0 \
