@@ -7,9 +7,6 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-RUN mkdir -p /static \
-    && cp -r /app/build/static/. /static/
-
 RUN npm install --global http-server
 
-CMD ["npx", "-y", "http-server", "-p", "8000", "/app/build"]
+CMD [ "bash", "-lc", "rm -rf /static/* && cp -r /app/build/static/. /static/ && npx -y http-server -p 8000 /app/build" ]
