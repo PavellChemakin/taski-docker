@@ -5,8 +5,9 @@ import Task from "./components/Task";
 import TabList from "./components/TabList";
 
 axios.interceptors.response.use(function (response) {
-  if (response.headers['content-type'] !== 'application/json') {
-    alert('unsupport data format in server response')
+  const contentType = response.headers['content-type'];
+  if (!contentType || !contentType.includes('application/json')) {
+    alert('unsupport data format in server response');
     return Promise.reject(new Error('unsupport data format'));
   }
   return response;
