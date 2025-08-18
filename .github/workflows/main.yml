@@ -111,13 +111,14 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             set -euxo pipefail
-            bash -lc '
-              mkdir -p /home/${USER}/taski
-              cd /home/${USER}/taski
-              docker compose -f docker-compose.production.yml down --remove-orphans || true
-              docker container prune -f || true
-              docker image prune -f || true
-              docker network prune -f || true
+            sudo bash -lc '
+              mkdir -p /home/${{ secrets.USER }}/taski
+              cd /home/${{ secrets.USER }}/taski
+              sudo docker compose -f docker-compose.production.yml down --remove-orphans || true
+              sudo docker ps -aq --filter "name=taski" | xargs -r sudo docker rm -f || true
+              sudo docker container prune -f || true
+              sudo docker image prune -f || true
+              sudo docker network prune -f || true
             '
 
   deploy:
@@ -145,15 +146,20 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             set -euxo pipefail
-            bash -lc '
-              cd /home/${USER}/taski
-              docker compose -f docker-compose.production.yml pull
-              docker compose -f docker-compose.production.yml down --remove-orphans || true
-              docker compose -f docker-compose.production.yml up -d --force-recreate --remove-orphans || true
-              docker compose -f docker-compose.production.yml exec -T backend python manage.py migrate
-              docker compose -f docker-compose.production.yml exec -T backend python manage.py collectstatic --noinput
-              docker compose -f docker-compose.production.yml exec -T backend bash -lc "rm -rf /backend_static/* && cp -r /app/collected_static/. /backend_static/"
-              docker compose -f docker-compose.production.yml exec -T frontend bash -lc "rm -rf /static/* && cp -r /app/build/static/. /static/"
+            sudo bash -lc '
+              cd /home/${{ secrets.USER }}/taski
+              sudo docker compose -f docker-compose.production.yml pull
+              sudo docker compose -f docker-compose.production.yml down --remove-orphans || true
+              sudo docker compose -f docker-compose.production.yml up -d --force-recreate --remove-orphans || true
+
+              sudo docker compose -f docker-compose.production.yml exec -T db bash -lc "until pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\" -h 127.0.0.1 -p 5432; do sleep 1; done"
+
+              sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py migrate
+              sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py collectstatic --noinput
+              sudo docker compose -f docker-compose.production.yml exec -T backend bash -lc "rm -rf /backend_static/* && cp -r /app/collected_static/. /backend_static/"
+
+              sudo docker compose -f docker-compose.production.yml exec -T frontend bash -lc "rm -rf /static/* && cp -r /app/build/static/. /static/"
+
               for i in $(seq 1 60); do wget -qO- http://frontend:8000/ >/dev/null 2>&1 && break || sleep 1; done
               curl -sfI http://127.0.0.1:9001/ >/dev/null
             '
