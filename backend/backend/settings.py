@@ -1,11 +1,22 @@
+import base64
 import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', '')
+if not SECRET_KEY:
+    b64 = os.getenv('SECRET_KEY_B64', '')
+    if b64:
+        SECRET_KEY = base64.b64decode(b64).decode('utf-8')
+if not SECRET_KEY:
+    raise ImproperlyConfigured('The SECRET_KEY setting must not be empty')
+
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 ALLOWED_HOSTS = [h for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h]
+LANGUAGE_CODE = os.getenv('DJANGO_LANGUAGE_CODE', 'ru-ru')
 
 INSTALLED_APPS = [
     'api.apps.ApiConfig',
