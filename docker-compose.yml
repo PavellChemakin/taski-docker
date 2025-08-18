@@ -12,8 +12,7 @@ services:
       timeout: 5s
       retries: 12
       start_period: 20s
-    networks:
-      - taski_net
+    networks: [taski_net]
     restart: always
 
   backend:
@@ -34,8 +33,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 10
-    networks:
-      - taski_net
+    networks: [taski_net]
     restart: always
 
   frontend:
@@ -45,8 +43,7 @@ services:
       - static:/static
     expose:
       - "8000"
-    networks:
-      - taski_net
+    networks: [taski_net]
     restart: always
 
   gateway:
@@ -62,8 +59,7 @@ services:
     volumes:
       - static:/static
       - media:/media
-    networks:
-      - taski_net
+    networks: [taski_net]
     restart: always
 
 volumes:
