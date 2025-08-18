@@ -7,7 +7,6 @@ import TabList from "./components/TabList";
 axios.interceptors.response.use(function (response) {
   const contentType = response.headers['content-type'];
   if (!contentType || !contentType.includes('application/json')) {
-    alert('unsupport data format in server response');
     return Promise.reject(new Error('unsupport data format'));
   }
   return response;
@@ -35,7 +34,7 @@ const App = () => {
       : axios.post("/api/tasks/", item);
 
     request
-      .then((res) => {
+      .then(() => {
         refreshList();
         setActiveTask(null);
       })
@@ -45,7 +44,7 @@ const App = () => {
   const handleDelete = (item) => {
     axios
       .delete(`/api/tasks/${item.id}/`)
-      .then(refreshList)
+      .then(() => refreshList())
       .catch(console.error);
   };
 
