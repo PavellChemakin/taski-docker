@@ -113,16 +113,28 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             set -euxo pipefail
-            export XDG_RUNTIME_DIR=/run/user/1000
-            export DOCKER_HOST=unix:///run/user/1000/docker.sock
-            export h=
-            bash -lc '
-              mkdir -p /home/${USER}/taski
-              cd /home/${USER}/taski
-              docker compose -f docker-compose.production.yml down --remove-orphans || true
-              docker container prune -f || true
-              docker image prune -f || true
-              docker network prune -f || true
+            sudo bash -lc '
+              mkdir -p /home/${{ secrets.USER }}/taski
+              cd /home/${{ secrets.USER }}/taski || exit 1
+
+              sudo docker compose -f docker-compose.production.yml down --remove-orphans || true
+
+              for n in taski-gateway-1 kittygram-gateway-1; do
+                id=$(sudo docker ps -aqf "name=^$n$" || true)
+                if [ -n "$id" ]; then
+                  pid=$(sudo docker inspect -f "{{.State.Pid}}" "$id" || echo "")
+                  if [ -n "$pid" ] && [ "$pid" != "0" ]; then
+                    sudo kill -9 "$pid" || true
+                  fi
+                  sudo docker rm -f "$id" || true
+                  sudo rm -rf "/var/lib/docker/containers/$id"* || true
+                fi
+              done
+
+              sudo systemctl restart docker
+              sudo docker container prune -f || true
+              sudo docker image prune -af || true
+              sudo docker network prune -f || true
             '
 
   deploy:
@@ -150,19 +162,20 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             set -euxo pipefail
-            export XDG_RUNTIME_DIR=/run/user/1000
-            export DOCKER_HOST=unix:///run/user/1000/docker.sock
-            export h=
-            bash -lc '
-              cd /home/${USER}/taski
-              docker compose -f docker-compose.production.yml pull
-              docker compose -f docker-compose.production.yml up -d --force-recreate --remove-orphans || true
-              docker compose -f docker-compose.production.yml exec -T db bash -lc "until pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -h 127.0.0.1 -p 5432; do sleep 1; done"
-              docker compose -f docker-compose.production.yml exec -T backend python manage.py migrate
-              docker compose -f docker-compose.production.yml exec -T backend python manage.py collectstatic --noinput
-              docker compose -f docker-compose.production.yml exec -T backend bash -lc "rm -rf /backend_static/* && cp -r /app/collected_static/. /backend_static/"
-              docker compose -f docker-compose.production.yml exec -T frontend bash -lc "rm -rf /static/* && cp -r /app/build/static/. /static/"
-              for i in $(seq 1 60); do docker compose -f docker-compose.production.yml exec -T gateway wget -qO- http://frontend:8000/ >/dev/null 2>&1 && break || sleep 1; done
+            sudo bash -lc '
+              cd /home/${{ secrets.USER }}/taski
+              sudo docker compose -f docker-compose.production.yml pull
+              sudo docker compose -f docker-compose.production.yml up -d --force-recreate --remove-orphans || true
+
+              sudo docker compose -f docker-compose.production.yml exec -T db bash -lc "until pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -h 127.0.0.1 -p 5432; do sleep 1; done"
+
+              sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py migrate
+              sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py collectstatic --noinput
+              sudo docker compose -f docker-compose.production.yml exec -T backend bash -lc "rm -rf /backend_static/* && cp -r /app/collected_static/. /backend_static/"
+
+              sudo docker compose -f docker-compose.production.yml exec -T frontend bash -lc "rm -rf /static/* && cp -r /app/build/static/. /static/"
+
+              for i in $(seq 1 60); do sudo docker compose -f docker-compose.production.yml exec -T gateway wget -qO- http://frontend:8000/ >/dev/null 2>&1 && break || sleep 1; done
               curl -sfI http://127.0.0.1:9001/ >/dev/null
             '
 
