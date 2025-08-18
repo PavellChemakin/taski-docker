@@ -94,6 +94,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ],
+    'DEFAULT_RENDERER_CLASSES': ['api.renderers.NoCharsetJSONRenderer'],
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
