@@ -3,20 +3,31 @@ import os
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.deprecation import MiddlewareMixin
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY', '')
-if not SECRET_KEY:
-    b64 = os.getenv('SECRET_KEY_B64', '')
+
+class JsonContentTypeMiddleware(MiddlewareMixin):
+
+    def process_response(self, request, response):
+        ct = response.get('Content-Type')
+        if ct and ct.startswith('application/json'):
+            response['Content-Type'] = 'application/json'
+        return response
+
+
+_secret = os.getenv('SECRET_KEY', '').strip()
+if not _secret:
+    b64 = os.getenv('SECRET_KEY_B64', '').strip()
     if b64:
-        SECRET_KEY = base64.b64decode(b64).decode('utf-8')
-if not SECRET_KEY:
+        _secret = base64.b64decode(b64).decode('utf-8')
+if not _secret:
     raise ImproperlyConfigured('The SECRET_KEY setting must not be empty')
+SECRET_KEY = _secret
 
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 ALLOWED_HOSTS = [h for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h]
-LANGUAGE_CODE = os.getenv('DJANGO_LANGUAGE_CODE', 'ru-ru')
 
 INSTALLED_APPS = [
     'api.apps.ApiConfig',
@@ -31,10 +42,11 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'backend.settings.JsonContentTypeMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -91,10 +103,8 @@ STATIC_ROOT = BASE_DIR / 'collected_static'
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ],
-    'DEFAULT_RENDERER_CLASSES': ['api.renderers.NoCharsetJSONRenderer'],
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
